@@ -49,6 +49,10 @@ async def on_ready():
     if not hasattr(bot, 'voice_check_task') or not bot.voice_check_task.is_running():
         bot.voice_check_task = check_voice_status.start()
         print("🏠 Voice Check Loop Started")
+         
+    text_channel = bot.get_channel(123456789012345678) 
+    if text_channel:
+        await text_channel.send("🚀 บอท gosu.wav ออนไลน์พร้อมใช้งานแล้ว!")
 
 # --- (โค้ดเช็คห้องเสียง อันเดิมของคุณที่รัน 24 ชม. ห้ามลบนะครับ!) ---
 # เช็คทุก 5 วินาทีตามที่คุณตั้งไว้
@@ -82,4 +86,30 @@ async def on_voice_state_update(member, before, after):
     if member.id == bot.user.id and before.channel is not None and after.channel is None:
         print("ℹ️ บอทหลุดจากห้องเสียง (จะกลับเข้าที่ในรอบตรวจถัดไป)")
 
+# --- คำสั่งกลุ่ม !pvr ---
+@bot.group()
+async def pvr(ctx):
+    # ถ้าพิมพ์แค่ !pvr เฉยๆ โดยไม่มีคำสั่งต่อท้าย จะไม่ทำอะไร
+    if ctx.invoked_subcommand is None:
+        pass
+
+# --- คำสั่งย่อย !pvr say ---
+@pvr.command()
+async def say(ctx, *, message: str):
+    # ตรวจสอบว่าคนสั่งคือคุณ (ID: 431421372133277698) หรือไม่
+    ALLOWED_USER_ID = 431421372133277698
+    
+    if ctx.author.id == ALLOWED_USER_ID:
+        # 1. ลบข้อความที่เราพิมพ์สั่ง (!pvr say ...) ทิ้งทันที
+        try:
+            await ctx.message.delete()
+        except Exception as e:
+            print(f"ลบข้อความไม่ได้ (อาจขาดสิทธิ์ Manage Messages): {e}")
+
+        # 2. ให้บอทส่งข้อความตามที่สั่ง
+        await ctx.send(message)
+    else:
+        # ถ้าคนอื่นสั่ง บอทจะไม่ตอบโต้ หรือคุณจะให้บอทพิมพ์ด่าก็ได้นะ 555
+        print(f"⚠️ มีคนพยายามใช้คำสั่ง: {ctx.author.name} (ID: {ctx.author.id})")
+        
 bot.run(TOKEN)
