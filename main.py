@@ -13,6 +13,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # --- ฟังก์ชันตั้งค่าสถานะแบบ Minimalist (รันแค่ครั้งเดียวตอนออนไลน์) ---
 async def set_minimalist_presence():
+    MY_APP_ID = 1493633885173579878
     # สร้าง Activity โดยใส่ค่าทั้งหมดลงไปใน constructor ทีเดียวเลยครับ
     minimal_activity = discord.Activity(
         type=discord.ActivityType.listening, 
