@@ -21,8 +21,6 @@ async def set_minimalist_presence():
         
         # รายละเอียดเพลง (เหมือน Spotify เป๊ะ)
         details="Kinda miss you ft. flug", # ชื่อเพลง
-        state="", # ชื่อศิลปิน + แถบเวลาปลอม
-        
         assets={
             "large_image": "kinda",        # รูปหน้าปกเพลง
             "large_text": "Kinda miss you", # เอาเมาส์ชี้แล้วขึ้นชื่อเพลง
