@@ -89,29 +89,35 @@ async def on_voice_state_update(member, before, after):
         print("ℹ️ บอทหลุดจากห้องเสียง (จะกลับเข้าที่ในรอบตรวจถัดไป)")
 
 # --- คำสั่งกลุ่ม !pvr ---
-@bot.group()
+@bot.group(name="pvr", invoke_without_command=True)
 async def pvr(ctx):
-    # ถ้าพิมพ์แค่ !pvr เฉยๆ โดยไม่มีคำสั่งต่อท้าย จะไม่ทำอะไร
-    if ctx.invoked_subcommand is None:
-        pass
+    # ถ้าพิมพ์ !pvr เฉยๆ ให้บอทลบข้อความนั้นทิ้งด้วย จะได้ไม่รก
+    if ctx.author.id == 431421372133277698:
+        await ctx.message.delete()
+    pass
 
 # --- คำสั่งย่อย !pvr say ---
-@pvr.command()
+@pvr.command(name="say")
 async def say(ctx, *, message: str):
-    # ตรวจสอบว่าคนสั่งคือคุณ (ID: 431421372133277698) หรือไม่
+    # ID ของคุณที่ได้รับอนุญาต
     ALLOWED_USER_ID = 431421372133277698
     
     if ctx.author.id == ALLOWED_USER_ID:
-        # 1. ลบข้อความที่เราพิมพ์สั่ง (!pvr say ...) ทิ้งทันที
         try:
+            # 1. 🔥 คำสั่งลบข้อความที่คุณพิมพ์สั่ง (เช่น !pvr say test)
             await ctx.message.delete()
+            
+            # 2. 🎤 บอทส่งข้อความตามที่สั่ง
+            await ctx.send(message)
+            
+            print(f"✅ บอทส่งข้อความแทนคุณแล้ว: {message}")
+            
         except Exception as e:
-            print(f"ลบข้อความไม่ได้ (อาจขาดสิทธิ์ Manage Messages): {e}")
-
-        # 2. ให้บอทส่งข้อความตามที่สั่ง
-        await ctx.send(message)
+            # ถ้าลบไม่ได้ (อาจเพราะบอทไม่มีสิทธิ์ Manage Messages) 
+            # ให้บอทส่งข้อความไปก่อน แล้วค่อยแจ้ง Error ในหน้า Log
+            await ctx.send(message)
+            print(f"⚠️ คำเตือน: บอทลบข้อความไม่ได้ เนื่องจาก: {e}")
     else:
-        # ถ้าคนอื่นสั่ง บอทจะไม่ตอบโต้ หรือคุณจะให้บอทพิมพ์ด่าก็ได้นะ 555
-        print(f"⚠️ มีคนพยายามใช้คำสั่ง: {ctx.author.name} (ID: {ctx.author.id})")
-
+        # ถ้าไม่ใช่คุณสั่ง บอทจะนิ่งเฉย (และไม่ลบข้อความด้วย เพื่อให้เห็นว่าใครมาเนียน)
+        print(f"🚫 มีคนพยายามสวมรอย: {ctx.author.name} (ID: {ctx.author.id})")
 bot.run(TOKEN)
