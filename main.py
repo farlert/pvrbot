@@ -47,7 +47,7 @@ async def on_voice_state_update(member, before, after):
 keep_alive()
 
 # รันบอท
-token = os.environ.get('MTQ5MzYzMzg4NTE3MzU3OTg3OA.G1TWaR.w87oMfFvpR3mVH-cpLy-OwtkIQ_eIwFrBi4Kno')
+token = os.environ.get('DISCORD_TOKEN')
 if token:
     bot.run(token)
 else:
