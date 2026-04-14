@@ -53,39 +53,31 @@ async def on_ready():
 
 @bot.event
 async def on_voice_state_update(member, before, after):
-    # 1. ตรวจสอบว่า "ตัวบอทเอง" ถูกย้ายห้องหรือไม่
+    # เช็คว่าสถานะที่เปลี่ยนคือตัวบอทเอง ไม่ใช่คนอื่น
     if member.id == bot.user.id:
-        # ถ้าบอทไม่ได้อยู่ในห้อง หรือ อยู่ในห้องที่ไม่ใช่ห้องเป้าหมาย
-        if after.channel is None or after.channel.id != TARGET_CHANNEL_ID:
-            print(f"⚠️ บอทถูกย้าย! กำลังจะกลับไปห้องเดิมใน 5 วินาที...")
-            await asyncio.sleep(5)
+        
+        # กรณีที่ 1: หลุดจากห้อง หรือถูกเตะออก (before มีห้อง แต่ after ไม่มีห้อง)
+        if before.channel is not None and after.channel is None:
+            print("⚠️ บอทหลุดจากห้อง! กำลังเช็คสถานะเพื่อกลับไปห้องเดิม...")
+            # รอ 10 วินาทีให้ Discord เคลียร์ Error 4006 (ห้ามปรับให้น้อยกว่านี้)
+            await asyncio.sleep(10)
             
-            channel = bot.get_channel(TARGET_CHANNEL_ID)
-            if channel:
-                # ตรวจสอบ Voice Client เดิม
-                voice_client = discord.utils.get(bot.voice_clients, guild=member.guild)
-                if voice_client:
-                    await voice_client.move_to(channel)
-                else:
-                    await channel.connect()
-                print(f"🏠 กลับเข้าห้องเป้าหมายสำเร็จ")
-        return
+            # เช็คว่า ณ ตอนนี้ บอทยังไม่ได้ต่อใช่มั้ย? (กันโค้ดทำงานซ้อนกัน)
+            vc = member.guild.voice_client
+            if vc is None or not vc.is_connected():
+                try:
+                    print("🔄 กำลังพยายามเชื่อมต่อใหม่...")
+                    await before.channel.connect()
+                    print("🏠 กลับเข้าห้องเป้าหมายสำเร็จ")
+                except Exception as e:
+                    print(f"❌ เข้าห้องไม่ได้: {e}")
 
-    # 2. การเก็บสถิติ (เฉพาะห้องเป้าหมายเท่านั้น)
-    # กรณี User เข้าห้องเป้าหมาย
-    if after.channel and after.channel.id == TARGET_CHANNEL_ID:
-        if before.channel is None or before.channel.id != TARGET_CHANNEL_ID:
-            active_users[member.id] = datetime.datetime.now()
-            print(f"📥 {member.name} เริ่มนับเวลาในห้องเป้าหมาย")
-
-    # กรณี User ออกจากห้องเป้าหมาย
-    elif before.channel and before.channel.id == TARGET_CHANNEL_ID:
-        if after.channel is None or after.channel.id != TARGET_CHANNEL_ID:
-            start_time = active_users.pop(member.id, None)
-            if start_time:
-                duration = datetime.datetime.now() - start_time
-                minutes = round(duration.total_seconds() / 60, 2)
-                print(f"📤 {member.name} ออกจากห้องเป้าหมาย. สถิติ: {minutes} นาที")
+        # กรณีที่ 2: มีแอดมินลากบอทไปห้องอื่น (before มีห้อง, after มีห้อง แต่คนละห้อง)
+        elif before.channel is not None and after.channel is not None and before.channel.id != after.channel.id:
+            print(f"⚠️ บอทถูกลากไปห้อง: {after.channel.name}")
+            # ถ้าอยากให้บอทดื้อ ดึงกลับห้องเดิมเสมอ ให้ลบเครื่องหมาย # สองบรรทัดล่างออกครับ
+            # await asyncio.sleep(3)
+            # await before.channel.connect()
 
 # เริ่มทำงาน
 keep_alive()
