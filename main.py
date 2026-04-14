@@ -120,4 +120,19 @@ async def say(ctx, *, message: str):
     else:
         # ถ้าไม่ใช่คุณสั่ง บอทจะนิ่งเฉย (และไม่ลบข้อความด้วย เพื่อให้เห็นว่าใครมาเนียน)
         print(f"🚫 มีคนพยายามสวมรอย: {ctx.author.name} (ID: {ctx.author.id})")
+# --- คำสั่งย่อย !pvr clear [จำนวน] ---
+@pvr.command(name="clear")
+async def clear(ctx, amount: int = 5):
+    # ตรวจสอบ ID คุณคนเดียว
+    if ctx.author.id == 431421372133277698:
+        try:
+            # ลบข้อความ (บวก 1 เพื่อลบตัวคำสั่งออกไปด้วย)
+            deleted = await ctx.channel.purge(limit=amount + 1)
+            
+            # ส่งข้อความบอกสถานะ แล้วลบตัวเองทิ้งใน 3 วินาที (ไม่ให้รกแชท)
+            await ctx.send(f"🧹 ล้างประวัติแชทให้แล้ว {len(deleted)-1} ข้อความครับ", delete_after=3)
+            
+            print(f"✅ Clear success: {len(deleted)-1} messages by {ctx.author.name}")
+        except Exception as e:
+            print(f"❌ Clear error: {e}")
 bot.run(TOKEN)
