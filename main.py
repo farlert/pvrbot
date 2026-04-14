@@ -13,27 +13,25 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # --- ฟังก์ชันตั้งค่าสถานะแบบ Minimalist (รันแค่ครั้งเดียวตอนออนไลน์) ---
 async def set_minimalist_presence():
-    # เราเลือกใช้แบบ "listening" (กำลังฟัง) เพื่อให้โชว์เป็น "Listening to..." ซึ่งเหมาะกับเพลงที่สุด
+    # สร้าง Activity แบบ Listening (กำลังฟัง)
     minimal_activity = discord.Activity(
         type=discord.ActivityType.listening, 
-        name="6str - Kinda miss you ft. flug 🎷", # ข้อความที่จะโชว์ใต้ชื่อบอท
-        
-        # 🖼️ รูปภาพนิ่ง (GIF คือไม่ได้จริงๆ ครับ)
-        # วิธีง่ายที่สุดคือใช้ลิงก์ภาพโดยตรง (เป็นภาพนิ่ง PNG/JPG ขนาดเล็ก)
-        # ผมใส่ตัวอย่างภาพไอคอนเพลงไว้ให้ก่อน คุณแก้เป็นลิงก์ภาพของคุณเองได้เลยครับ
-        large_image_url="https://gosuwav.vercel.app/_next/image?url=https%3A%2F%2Fszfouniinojhaycfsoxt.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fartworks%2Fart-1772600163818.png&w=1920&q=75", 
-        
-        # ข้อความตอนเอาเมาส์ชี้ภาพ (ถ้าไม่ต้องการให้ลบออกได้)
-        large_image_text="6str - Kinda miss you ft. flug",
-        
-        # 🔗 ปุ่มคลิกเปิดลิงก์ (นี่คือวิธีเดียวที่จะมีลิงก์ให้กดครับ)
-        # เราใส่แค่ปุ่มเดียวเพื่อให้คลีนที่สุด
-        buttons=[
-            {"label": "Listen on gosu.wav 🎧", "url": "https://gosuwav.vercel.app/artist/6str?track=86efea40-82d5-4960-86ae-50aeaf86eb25"} # แก้ลิงก์ของคุณที่นี่
-        ]
+        name="6str - Kinda miss you ft. flug 🎷"
     )
     
-    # สั่งเปลี่ยนสถานะ
+    # 🖼️ ดึงรูปจาก Asset ที่อัปโหลดใน Developer Portal
+    # ใส่ชื่อ Asset Key ที่คุณตั้งไว้ (ในที่นี้คือ "kinda")
+    minimal_activity.large_image_url = "kinda" 
+    minimal_activity.large_image_text = "6str - Kinda miss you ft. flug"
+    
+    # 🔗 ปุ่มกดฟังเพลง
+    minimal_activity.buttons = [
+        {
+            "label": "Listen on gosu.wav 🎧", 
+            "url": "https://gosuwav.vercel.app/artist/6str?track=86efea40-82d5-4960-86ae-50aeaf86eb25"
+        }
+    ]
+    
     await bot.change_presence(status=discord.Status.online, activity=minimal_activity)
 
 # --- Event เมื่อบอทพร้อม (Setup presence และ tasks) ---
