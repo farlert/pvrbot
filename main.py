@@ -2,87 +2,83 @@ import discord
 from discord.ext import commands, tasks
 import os
 import asyncio
-from itertools import cycle
 
 # --- ตั้งค่าพื้นฐาน (เหมือนเดิม) ---
 TOKEN = os.getenv('DISCORD_TOKEN')
-TARGET_CHANNEL_ID = 1069137562213552128
+TARGET_CHANNEL_ID = 1069137562213552128 # ID ห้องเสียงที่คุณต้องการให้บอทอยู่
 
 intents = discord.Intents.default()
-intents.voice_states = True
+intents.voice_states = True # Needed for voice check
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# --- ระบบ Rich Presence แบบ Dynamic (สลับทุก 30 วินาที) ---
-@tasks.loop(seconds=30)
-async def change_status():
-    await bot.wait_until_ready()
-    
-    # --- สถานะที่ 1: FiveM Server Theme ---
-    fivem_activity = discord.Activity(
-        type=discord.ActivityType.playing, # เปลี่ยนเป็น Playing
-        name="PVR Motorsport Server 🏎️", # ชื่อเกมที่โชว์
-        details="Gosu's Garage - Customizing...", # รายละเอียดด้านล่าง
-        state="Current Online: 24/64 👥", # สถานะ
-        large_image_url="https://w7.pngwing.com/pngs/433/561/png-transparent-logo-gta-v-thumbnail.png", # ลิงก์ภาพใหญ่ หรือชื่อไฟล์ที่อัปโหลด (เช่น logo_pvr)
-        large_image_text="PVR Motorsport 🔥", # ข้อความตอนเอาเมาส์ชี้ภาพใหญ่
-        buttons=[ # ใส่ปุ่มได้สูงสุด 2 ปุ่ม
-            {"label": "Join FiveM Server", "url": "fivem://connect/your_server_ip"},
-            {"label": "Visit Website", "url": "https://pvrmotorsport.co"}
-        ]
-    )
-
-    # --- สถานะที่ 2: F1 Live Timing Theme ---
-    f1_activity = discord.Activity(
-        type=discord.ActivityType.playing,
-        name="gosu.wav Live Broadcast 🎧",
-        details="Listening to Pluggnb Chords",
-        state="Source: F1 Data",
-        large_image_url="https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/F1.svg/1200px-F1.svg.png", # ลิงก์ภาพ หรือชื่อไฟล์ (เช่น gosuwav_cover)
-        large_image_text="F1 World Championship",
+# --- ฟังก์ชันตั้งค่าสถานะแบบ Minimalist (รันแค่ครั้งเดียวตอนออนไลน์) ---
+async def set_minimalist_presence():
+    # เราเลือกใช้แบบ "listening" (กำลังฟัง) เพื่อให้โชว์เป็น "Listening to..." ซึ่งเหมาะกับเพลงที่สุด
+    minimal_activity = discord.Activity(
+        type=discord.ActivityType.listening, 
+        name="6str - Kinda miss you ft. flug 🎷", # ข้อความที่จะโชว์ใต้ชื่อบอท
+        
+        # 🖼️ รูปภาพนิ่ง (GIF คือไม่ได้จริงๆ ครับ)
+        # วิธีง่ายที่สุดคือใช้ลิงก์ภาพโดยตรง (เป็นภาพนิ่ง PNG/JPG ขนาดเล็ก)
+        # ผมใส่ตัวอย่างภาพไอคอนเพลงไว้ให้ก่อน คุณแก้เป็นลิงก์ภาพของคุณเองได้เลยครับ
+        large_image_url="https://gosuwav.vercel.app/_next/image?url=https%3A%2F%2Fszfouniinojhaycfsoxt.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fartworks%2Fart-1772600163818.png&w=1920&q=75", 
+        
+        # ข้อความตอนเอาเมาส์ชี้ภาพ (ถ้าไม่ต้องการให้ลบออกได้)
+        large_image_text="6str - Kinda miss you ft. flug",
+        
+        # 🔗 ปุ่มคลิกเปิดลิงก์ (นี่คือวิธีเดียวที่จะมีลิงก์ให้กดครับ)
+        # เราใส่แค่ปุ่มเดียวเพื่อให้คลีนที่สุด
         buttons=[
-            {"label": "Open Web Dev Kit", "url": "https://your_devkit_url.com"},
-            {"label": "F1 Calendar 🏁", "url": "https://www.formula1.com/en/racing/2026.html"}
-            
+            {"label": "Listen on gosu.wav 🎧", "url": "https://gosuwav.vercel.app/artist/6str?track=86efea40-82d5-4960-86ae-50aeaf86eb25"} # แก้ลิงก์ของคุณที่นี่
         ]
     )
+    
+    # สั่งเปลี่ยนสถานะ
+    await bot.change_presence(status=discord.Status.online, activity=minimal_activity)
 
-    # วนลูปสลับสถานะ
-    statuses = cycle([fivem_activity, f1_activity])
-    await bot.change_presence(activity=next(statuses))
-
-# --- Event เมื่อบอทพร้อม (เหมือนเดิม แต่อย่าลืม start tasks ใหม่) ---
+# --- Event เมื่อบอทพร้อม (Setup presence และ tasks) ---
 @bot.event
 async def on_ready():
     print(f'✅ ออนไลน์แล้วในชื่อ: {bot.user}')
-    # เริ่มต้นระบบเช็คห้องเสียง
+    
+    # 1. ตั้งค่าสถานะทีเดียวจบ (ไม่ต้องรัน Loop ให้กวนเครื่อง)
+    await set_minimalist_presence()
+    print("✨ Minimalist Presence Set")
+    
+    # 2. 🏠 เริ่มต้นระบบเช็คห้องเสียงอันแสนเสถียรของเรา (ขาดตัวนี้ไม่ได้!)
     if not hasattr(bot, 'voice_check_task') or not bot.voice_check_task.is_running():
         bot.voice_check_task = check_voice_status.start()
         print("🏠 Voice Check Loop Started")
-        
-    # เริ่มต้นระบบสลับสถานะ (Rich Presence)
-    if not change_status.is_running():
-        change_status.start()
-        print("✨ Presence Loop Started")
 
-# --- (โค้ด check_voice_status, on_voice_state_update เหมือนเดิมครับ) ---
-@tasks.loop(seconds=5) # หรือปรับเวลาตามต้องการ
+# --- (โค้ดเช็คห้องเสียง อันเดิมของคุณที่รัน 24 ชม. ห้ามลบนะครับ!) ---
+# เช็คทุก 5 วินาทีตามที่คุณตั้งไว้
+@tasks.loop(seconds=5)
 async def check_voice_status():
-    # ... (โค้ดเก่าของคุณ) ...
     await bot.wait_until_ready()
     channel = bot.get_channel(TARGET_CHANNEL_ID)
-    if channel is None: return
+    
+    if channel is None:
+        return
+
     guild = channel.guild
     vc = guild.voice_client
+
     try:
         if vc is None:
+            # print("🔍 ตรวจพบ: บอทไม่อยู่ในห้องเสียง กำลังเข้าร่วม...")
             await channel.connect(reconnect=True, timeout=20)
+            # print(f"🏠 เข้าห้อง {channel.name} สำเร็จ")
         elif vc.channel.id != TARGET_CHANNEL_ID:
+            # print(f"🔍 ตรวจพบ: บอทอยู่ผิดห้อง กำลังย้ายกลับ...")
             await vc.move_to(channel)
+            # print(f"🏠 ย้ายกลับเข้าห้อง {channel.name} เรียบร้อย")
     except Exception as e:
-        print(f"Error: {e}")
+        # Silent failure for stability
+        pass
 
 @bot.event
 async def on_voice_state_update(member, before, after):
+    # Optional logger (harmless to keep)
     if member.id == bot.user.id and before.channel is not None and after.channel is None:
         print("ℹ️ บอทหลุดจากห้องเสียง (จะกลับเข้าที่ในรอบตรวจถัดไป)")
 
