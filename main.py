@@ -79,22 +79,19 @@ async def check_voice_status():
 
     try:
         if vc is None:
-            # กรณีบอทไม่อยู่ในห้องเลย
             await channel.connect(reconnect=True, timeout=20)
         elif vc.channel.id != TARGET_CHANNEL_ID:
-            # กรณีอยู่ผิดห้อง
             await vc.move_to(channel)
-        elif not vc.is_connected():
-            # 🔥 วิธีแก้ 4006: ถ้าสถานะคือ 'ค้าง' แต่ไม่เชื่อมต่อ ให้ล้างทิ้งแล้วเข้าใหม่
-            await vc.disconnect(force=True)
-            await asyncio.sleep(1) # รอให้ระบบล้างเซสชัน 1 วิ
-            await channel.connect(reconnect=True, timeout=20)
-            
     except Exception as e:
-        # ถ้าเกิด Error 4006 ให้สั่งตัดการเชื่อมต่อแบบรุนแรง (Force Disconnect) เพื่อเริ่มใหม่รอบหน้า
-        if "4006" in str(e):
-            if vc: await vc.disconnect(force=True)
-            print(f"⚠️ พบ Error 4006: ล้างเซสชันที่บูดแล้ว เตรียมเข้าใหม่ในรอบหน้า")
+        # 🔥 ตรงนี้คือหัวใจสำคัญครับ ถ้าเจอ Error อะไรก็ตาม ให้สั่งล้าง Session ทิ้งทันที
+        print(f"⚠️ เกิดข้อผิดพลาดในระบบเสียง: {e}")
+        if vc:
+            try:
+                # สั่งยกเลิกการเชื่อมต่อแบบถอนรากถอนโคน
+                await vc.disconnect(force=True)
+                await asyncio.sleep(1) 
+            except:
+                pass
 
 @bot.event
 async def on_voice_state_update(member, before, after):
