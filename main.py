@@ -145,9 +145,14 @@ async def on_ready():
     print(f'✅ ออนไลน์แล้วในชื่อ: {bot.user}')
     await set_minimalist_presence()
     
-    if not hasattr(bot, 'voice_check_task') or not bot.voice_check_task.is_running():
-        bot.voice_check_task = check_voice_status.start()
-        print("🏠 Voice Check Loop Started")
+    # 🛑 เช็คว่ารันบน Render หรือไม่? 
+    # (เราจะไปตั้งค่า IS_RENDER เป็น True ในหน้าเว็บ Render)
+    if os.getenv("IS_RENDER") != "True":
+        if not hasattr(bot, 'voice_check_task') or not bot.voice_check_task.is_running():
+            bot.voice_check_task = check_voice_status.start()
+            print("🏠 [GCP Mode] Voice Check Loop Started")
+    else:
+        print("🌐 [Render Mode] บอทออนไลน์เพื่อรับ Cronjob เท่านั้น (ปิดระบบเข้าห้องเสียงเพื่อเลี่ยง Error 4006)")
 
 # เรียก Web Server ให้ทำงาน "ก่อน" บอทรัน
 keep_alive()
