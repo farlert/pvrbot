@@ -2,60 +2,31 @@ import discord
 from discord.ext import commands, tasks
 import os
 import asyncio
-from flask import Flask
-from threading import Thread
 
-# ==========================================
-# 🌐 1. ระบบ Keep-Alive (สำหรับ Render & Cronjob)
-# ==========================================
-app = Flask('')
-
-@app.route('/')
-def home():
-    # หน้าเว็บเล็กๆ ไว้บอกว่าบอททำงานอยู่
-    return "🚀 GOSU.WAV Bot is Alive and Running!"
-
-def run_web():
-    # Render จะแจกพอร์ตมาให้ทางตัวแปร PORT (ค่าเริ่มต้น 8080)
-    port = int(os.environ.get("PORT", 8080))
-    # ปิดข้อความ Log รกๆ ของ Flask ไม่ให้กวนหน้าจอ tmux
-    import logging
-    log = logging.getLogger('werkzeug')
-    log.setLevel(logging.ERROR)
-    app.run(host='0.0.0.0', port=port)
-
-def keep_alive():
-    t = Thread(target=run_web)
-    t.daemon = True # ให้ Thread ปิดตัวเองเมื่อบอทดับ
-    t.start()
-    print("🌐 เริ่มระบบ Web Server สำหรับรับ Cronjob แล้ว")
-
-# ==========================================
-# 🤖 2. ระบบ Bot พื้นฐาน
-# ==========================================
+# --- ตั้งค่าพื้นฐาน (เหมือนเดิม) ---
 TOKEN = os.getenv('DISCORD_TOKEN')
-TARGET_CHANNEL_ID = 1069137562213552128 
+TARGET_CHANNEL_ID = 1069137562213552128 # ID ห้องเสียงที่คุณต้องการให้บอทอยู่
 
 intents = discord.Intents.default()
-intents.voice_states = True 
-intents.message_content = True
+intents.voice_states = True # Needed for voice check
+bot = commands.Bot(command_prefix="!", intents=intents)
+intents.message_content = True  # ✅ ต้องมีบรรทัดนี้! (สำคัญมากสำหรับคำสั่ง !)
 intents.messages = True
 
-bot = commands.Bot(command_prefix="!", intents=intents)
-
-# --- 3. ฟังก์ชันสถานะ (Spotify) ---
 async def set_minimalist_presence():
-    MY_APP_ID = 1493633885173579878 
+    MY_APP_ID = 1493633885173579878  # <--- อย่าลืมใส่ ID ของคุณเหมือนเดิม
 
     activity = discord.Activity(
         type=discord.ActivityType.listening,
-        name="don't know whyyy", 
+        name="♫ Listening to GOSU.WAV", # ตรงนี้ต้องใส่ว่า Spotify เพื่อให้มันขึ้น Listening to Spotify
         application_id=MY_APP_ID,
-        details="Kinda miss you ft. flug", 
+
+        # รายละเอียดเพลง (เหมือน Spotify เป๊ะ)
+        details="Kinda miss you ft. flug", # ชื่อเพลง
         assets={
-            "large_image": "kinda",        
-            "large_text": "Kinda miss you", 
-            "small_image": "spotify_logo", 
+            "large_image": "kinda",        # รูปหน้าปกเพลง
+            "large_text": "Kinda miss you", # เอาเมาส์ชี้แล้วขึ้นชื่อเพลง
+            "small_image": "spotify_logo", # โลโก้ Spotify เล็กๆ ที่มุมรูป (ถ้าอัปโหลดไว้)
             "small_text": "Verified Artist" 
         },
         buttons=[
@@ -65,60 +36,86 @@ async def set_minimalist_presence():
             }
         ]
     )
-    await bot.change_presence(status=discord.Status.online, activity=activity)
 
-@tasks.loop(seconds=10) # ปรับจาก 5 เป็น 10 วินาที เพื่อไม่ให้ Discord มองว่าเราสแปม
+    await bot.change_presence(status=discord.Status.online, activity=activity)
+# --- Event เมื่อบอทพร้อม (Setup presence และ tasks) ---
+@bot.event
+async def on_ready():
+    print(f'✅ ออนไลน์แล้วในชื่อ: {bot.user}')
+
+    # 1. ตั้งค่าสถานะทีเดียวจบ (ไม่ต้องรัน Loop ให้กวนเครื่อง)
+    await set_minimalist_presence()
+    print("✨ Minimalist Presence Set")
+
+    # 2. 🏠 เริ่มต้นระบบเช็คห้องเสียงอันแสนเสถียรของเรา (ขาดตัวนี้ไม่ได้!)
+    if not hasattr(bot, 'voice_check_task') or not bot.voice_check_task.is_running():
+        bot.voice_check_task = check_voice_status.start()
+        print("🏠 Voice Check Loop Started")
+
+    text_channel = bot.get_channel(123456789012345678) 
+    if text_channel:
+        await text_channel.send("🚀 บอท gosu.wav ออนไลน์พร้อมใช้งานแล้ว!")
+
+# --- (โค้ดเช็คห้องเสียง อันเดิมของคุณที่รัน 24 ชม. ห้ามลบนะครับ!) ---
+# เช็คทุก 5 วินาทีตามที่คุณตั้งไว้
+@tasks.loop(seconds=5)
 async def check_voice_status():
     await bot.wait_until_ready()
     channel = bot.get_channel(TARGET_CHANNEL_ID)
-    if channel is None: return
+
+    if channel is None:
+        return
 
     guild = channel.guild
-    # ดึงค่า voice_client แบบสดๆ ทุกรอบ
-    vc = discord.utils.get(bot.voice_clients, guild=guild)
+    vc = guild.voice_client
 
     try:
-        if vc is None or not vc.is_connected():
-            print("🔄 [Backup Bot] กำลังสร้างการเชื่อมต่อใหม่จากศูนย์...")
-            # ก่อนต่อใหม่ ให้มั่นใจว่าไม่มีซากเก่าค้างอยู่
-            if vc: await vc.disconnect(force=True)
+        if vc is None:
+            # print("🔍 ตรวจพบ: บอทไม่อยู่ในห้องเสียง กำลังเข้าร่วม...")
             await channel.connect(reconnect=True, timeout=20)
+            # print(f"🏠 เข้าห้อง {channel.name} สำเร็จ")
         elif vc.channel.id != TARGET_CHANNEL_ID:
-            print("🔄 [Backup Bot] ย้ายห้องให้ถูกต้อง...")
+            # print(f"🔍 ตรวจพบ: บอทอยู่ผิดห้อง กำลังย้ายกลับ...")
             await vc.move_to(channel)
+            # print(f"🏠 ย้ายกลับเข้าห้อง {channel.name} เรียบร้อย")
     except Exception as e:
-        print(f"❌ [Backup Bot] 4006 Error หรืออื่นๆ: {e}")
-        # ถ้าพัง ให้เตะตัวเองออกจากห้องในระดับ Library ไปเลย
-        for x in bot.voice_clients:
-            if x.guild == guild:
-                await x.disconnect(force=True)
-        
+        # Silent failure for stability
+        pass
+
 @bot.event
 async def on_voice_state_update(member, before, after):
+    # Optional logger (harmless to keep)
     if member.id == bot.user.id and before.channel is not None and after.channel is None:
         print("ℹ️ บอทหลุดจากห้องเสียง (จะกลับเข้าที่ในรอบตรวจถัดไป)")
 
-# ==========================================
-# 💻 5. ระบบคำสั่ง (!pvr)
-# ==========================================
+# --- คำสั่งกลุ่ม !pvr ---
 @bot.group(name="pvr", invoke_without_command=True)
 async def pvr(ctx):
+    # ถ้าพิมพ์ !pvr เฉยๆ ให้บอทลบข้อความนั้นทิ้งด้วย จะได้ไม่รก
     if ctx.author.id == 431421372133277698:
         await ctx.message.delete()
     pass
 
-# คำสั่ง: !pvr say
+# --- คำสั่งย่อย !pvr say ---
 @pvr.command(name="say")
 async def say(ctx, *, message: str):
+    # ID ของคุณที่ได้รับอนุญาต
     ALLOWED_USER_ID = 431421372133277698
-    
+
     if ctx.author.id == ALLOWED_USER_ID:
-        await ctx.send(message)
-        # หน่วงเวลา 0.5 วิ แก้บัคข้อความผี (Ghost Message) ในคอม
-        await asyncio.sleep(0.5)
         try:
+            # 1. 🔥 คำสั่งลบข้อความที่คุณพิมพ์สั่ง (เช่น !pvr say test)
             await ctx.message.delete()
+
+            # 2. 🎤 บอทส่งข้อความตามที่สั่ง
+            await ctx.send(message)
+
+            print(f"✅ บอทส่งข้อความแทนคุณแล้ว: {message}")
+
         except Exception as e:
+            # ถ้าลบไม่ได้ (อาจเพราะบอทไม่มีสิทธิ์ Manage Messages) 
+            # ให้บอทส่งข้อความไปก่อน แล้วค่อยแจ้ง Error ในหน้า Log
+            await ctx.send(message)
             print(f"⚠️ คำเตือน: บอทลบข้อความไม่ได้ เนื่องจาก: {e}")
     else:
         # ถ้าไม่ใช่คุณสั่ง บอทจะนิ่งเฉย (และไม่ลบข้อความด้วย เพื่อให้เห็นว่าใครมาเนียน)
