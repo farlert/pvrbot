@@ -49,7 +49,7 @@ async def set_minimalist_presence():
 
     activity = discord.Activity(
         type=discord.ActivityType.listening,
-        name="♫ Listening to GOSU.WAV", 
+        name="don't know whyyy", 
         application_id=MY_APP_ID,
         details="Kinda miss you ft. flug", 
         assets={
@@ -72,7 +72,6 @@ async def set_minimalist_presence():
 async def check_voice_status():
     await bot.wait_until_ready()
     channel = bot.get_channel(TARGET_CHANNEL_ID)
-    
     if channel is None: return
 
     guild = channel.guild
@@ -80,11 +79,22 @@ async def check_voice_status():
 
     try:
         if vc is None:
+            # กรณีบอทไม่อยู่ในห้องเลย
             await channel.connect(reconnect=True, timeout=20)
         elif vc.channel.id != TARGET_CHANNEL_ID:
+            # กรณีอยู่ผิดห้อง
             await vc.move_to(channel)
+        elif not vc.is_connected():
+            # 🔥 วิธีแก้ 4006: ถ้าสถานะคือ 'ค้าง' แต่ไม่เชื่อมต่อ ให้ล้างทิ้งแล้วเข้าใหม่
+            await vc.disconnect(force=True)
+            await asyncio.sleep(1) # รอให้ระบบล้างเซสชัน 1 วิ
+            await channel.connect(reconnect=True, timeout=20)
+            
     except Exception as e:
-        pass
+        # ถ้าเกิด Error 4006 ให้สั่งตัดการเชื่อมต่อแบบรุนแรง (Force Disconnect) เพื่อเริ่มใหม่รอบหน้า
+        if "4006" in str(e):
+            if vc: await vc.disconnect(force=True)
+            print(f"⚠️ พบ Error 4006: ล้างเซสชันที่บูดแล้ว เตรียมเข้าใหม่ในรอบหน้า")
 
 @bot.event
 async def on_voice_state_update(member, before, after):
