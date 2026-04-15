@@ -114,7 +114,6 @@ async def say(ctx, *, message: str):
         except Exception as e:
             print(f"⚠️ คำเตือน: บอทลบข้อความไม่ได้ เนื่องจาก: {e}")
     else:
-<<<<<<< HEAD
         print(f"🚫 มีคนพยายามสวมรอย: {ctx.author.name}")
 
 # คำสั่ง: !pvr clear
@@ -144,8 +143,4 @@ async def on_ready():
 keep_alive()
 
 # รันบอท
-=======
-        # ถ้าไม่ใช่คุณสั่ง บอทจะนิ่งเฉย (และไม่ลบข้อความด้วย เพื่อให้เห็นว่าใครมาเนียน)
-        print(f"🚫 มีคนพยายามสวมรอย: {ctx.author.name} (ID: {ctx.author.id})")
->>>>>>> parent of 39e61d7 (Update main.py)
 bot.run(TOKEN)
