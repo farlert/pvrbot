@@ -79,8 +79,13 @@ async def check_voice_status():
             await vc.move_to(channel)
             # print(f"🏠 ย้ายกลับเข้าห้อง {channel.name} เรียบร้อย")
     except Exception as e:
-        # Silent failure for stability
-        pass
+        # 🔥 เปลี่ยนจาก pass เป็นระบบสลายเซสชันที่บูดทิ้ง
+        print(f"⚠️ Voice Error: {e} | สั่ง Force Disconnect เพื่อเริ่มใหม่...")
+        if vc:
+            try:
+                await vc.disconnect(force=True)
+            except:
+                pass
 
 @bot.event
 async def on_voice_state_update(member, before, after):
