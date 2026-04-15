@@ -18,7 +18,7 @@ async def set_minimalist_presence():
 
     activity = discord.Activity(
         type=discord.ActivityType.Playing,
-        name="noting", 
+        name="nothing", 
         application_id=MY_APP_ID,
 
         # รายละเอียดเพลง (เหมือน Spotify เป๊ะ)
