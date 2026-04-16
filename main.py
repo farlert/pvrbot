@@ -13,40 +13,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 intents.message_content = True  # ✅ ต้องมีบรรทัดนี้! (สำคัญมากสำหรับคำสั่ง !)
 intents.messages = True
 
-async def set_minimalist_presence():
-    MY_APP_ID = 1493633885173579878  # <--- อย่าลืมใส่ ID ของคุณเหมือนเดิม
 
-    activity = discord.Activity(
-        type=discord.ActivityType.streaming,
-        name="???", # ตรงนี้ต้องใส่ว่า Spotify เพื่อให้มันขึ้น Listening to Spotify
-        application_id=MY_APP_ID,
-
-        # รายละเอียดเพลง (เหมือน Spotify เป๊ะ)
-        details="Kinda miss you ft. flug", # ชื่อเพลง
-        assets={
-            "large_image": "kinda",        # รูปหน้าปกเพลง
-            "large_text": "Kinda miss you", # เอาเมาส์ชี้แล้วขึ้นชื่อเพลง
-            "small_image": "spotify_logo", # โลโก้ Spotify เล็กๆ ที่มุมรูป (ถ้าอัปโหลดไว้)
-            "small_text": "Verified Artist" 
-        },
-        buttons=[
-            {
-                "label": "Play on gosu.wav 🎧", 
-                "url": "https://gosuwav.vercel.app/artist/6str?track=86efea40-82d5-4960-86ae-50aeaf86eb25"
-            }
-        ]
-    )
-
-    await bot.change_presence(status=discord.Status.online, activity=activity)
-# --- Event เมื่อบอทพร้อม (Setup presence และ tasks) ---
 @bot.event
 async def on_ready():
     print(f'✅ ออนไลน์แล้วในชื่อ: {bot.user}')
-
-    # 1. ตั้งค่าสถานะทีเดียวจบ (ไม่ต้องรัน Loop ให้กวนเครื่อง)
-    await set_minimalist_presence()
-    print("✨ Minimalist Presence Set")
-
     # 2. 🏠 เริ่มต้นระบบเช็คห้องเสียงอันแสนเสถียรของเรา (ขาดตัวนี้ไม่ได้!)
     if not hasattr(bot, 'voice_check_task') or not bot.voice_check_task.is_running():
         bot.voice_check_task = check_voice_status.start()
